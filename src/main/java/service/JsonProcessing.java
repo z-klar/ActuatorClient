@@ -167,13 +167,11 @@ public class JsonProcessing {
     }
 
     public void ParseJsonToLog(String jsonString, DefaultListModel dlm) {
-
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode actualObj = mapper.readTree(jsonString);
             log.info("Main element: size = " + actualObj.size());
             ParseOneLevel(actualObj, dlm, 0);
-
         }
         catch(Exception ex) {
             log.error(ex.getMessage());
@@ -181,7 +179,6 @@ public class JsonProcessing {
     }
 
     private void ParseOneLevel(JsonNode node, DefaultListModel dlm, int level ) {
-
         Iterator<Map.Entry<String, JsonNode>> root = node.fields();
         while(root.hasNext()) {
             Map.Entry<String, JsonNode> entry = root.next();
@@ -221,5 +218,29 @@ public class JsonProcessing {
             }
         }
         dlm.addElement(Tools.getPadding(level-1) + "]");
+    }
+
+    public CommonOutput GetMetricsList(String jsonString) {
+        CommonOutput co = new CommonOutput();
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode actualObj = mapper.readTree(jsonString);
+            JsonNode names = actualObj.get("names");
+            ArrayNode n = (ArrayNode) names;
+            ArrayList<String> metrics = new ArrayList<>();
+            for(int i=0; i<n.size(); i++) {
+                metrics.add(n.get(i).asText());
+            }
+            co.setResult(metrics);
+            return(co);
+        }
+        catch(Exception ex) {
+            log.error(ex.getMessage());
+            ArrayList<String> al = new ArrayList<>();
+            al.add(ex.getMessage());
+            co.setErrorMsg(al);
+            return(co);
+        }
     }
 }

@@ -2,6 +2,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
 import dto.RestCallOutput;
+import jdk.nashorn.internal.scripts.JO;
 import model.ActuatorLink;
 import model.CommonOutput;
 import model.LoggerRecord;
@@ -9,10 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import service.JsonProcessing;
 import service.RestCallService;
-import table.Loggers;
-import table.LoggersModel;
-import table.MainLinks;
-import table.MainLinksModel;
+import table.*;
 import tools.GlobalData;
 
 import javax.swing.*;
@@ -41,6 +39,8 @@ public class frmMain implements ActionListener {
     private JButton btnDisplayLoggers;
     private JCheckBox chkLogujVerbose;
     private JLabel lbBuildInfo;
+    private JButton btnGetMetrics;
+    private JButton btnDisplayMetrics;
 
     private DefaultListModel<String> dlmLog = new DefaultListModel<>();
     private DefaultListModel<String> dlmPrivateLog = new DefaultListModel<>();
@@ -54,6 +54,7 @@ public class frmMain implements ActionListener {
 
     JPopupMenu popLoggers = new JPopupMenu("pop_loggers");
     JPopupMenu popMain = new JPopupMenu("pop_main");
+    JPopupMenu popMetrics = new JPopupMenu("pop_metrics");
 
     /**
      *
@@ -82,8 +83,11 @@ public class frmMain implements ActionListener {
         });
 
         lbBuildInfo.setText("Build Date: " + getBuildDate().toString());
+        btnGetMetrics.addActionListener(e -> GetMetrics());
+        btnDisplayMetrics.addActionListener(e -> DisplayMetrics());
     }
 
+    // region POPUP handlers
     private void PreparePopups() {
         // popup for LOGGER table
         JMenuItem mnuPpLogOFF = new JMenuItem("Set to OFF");
@@ -109,6 +113,11 @@ public class frmMain implements ActionListener {
         JMenuItem mnuPpMainGet = new JMenuItem("Send GET Request");
         mnuPpMainGet.addActionListener(this);
         popMain.add(mnuPpMainGet);
+
+        // popup for METRICS table
+        JMenuItem mnuPpMEtricsGet = new JMenuItem("GET This Metrics");
+        mnuPpMEtricsGet.addActionListener(this);
+        popMetrics.add(mnuPpMEtricsGet);
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -137,8 +146,12 @@ public class frmMain implements ActionListener {
                     SendLinkGet();
                 }
                 break;
+            case "pop_metrics":
+                if (source.getText().contains("GET")) {
+                    SendGetMetric();
+                }
+                break;
         }
-
     }
 
     /**
@@ -151,6 +164,59 @@ public class frmMain implements ActionListener {
         } else if (currentDisplay.contains("loggers")) {
             TableMouseClickRow = row;
             popLoggers.show(tblData1, x, y);
+        } else if (currentDisplay.contains("metrics")) {
+            TableMouseClickRow = row;
+            popMetrics.show(tblData1, x, y);
+        }
+    }
+    // endregion
+
+    private void SendGetMetric() {
+        String url = txCfgActuatorUri.getText() + "/actuator/metrics/";
+        url += globalData.getActuatorMetrics().get(TableMouseClickRow);
+        Map<String, String> props = new HashMap<>();
+        props.put("Accept", "*/*");
+        log.info("GET single metrics:");
+        log.info(url);
+        RestCallOutput ro = restService.SendRestApiRequest("GET", props, null, url);
+        log.info("Result code: " + ro.getResultCode());
+        Loguj("Result: " + ro.getResultCode());
+        if (ro.getResultCode() < 300) {
+            jsonProcessing.ParseJsonToLog(ro.getDataMsg(), dlmLog);
+        } else {
+            Loguj(ro.getErrorMsg());
+        }
+    }
+    /**
+     *
+     */
+    private void DisplayMetrics() {
+        Vector<Metrics> rows = new Vector<>();
+        for (String m : globalData.getActuatorMetrics()) {
+            rows.add(new Metrics(m));
+        }
+        MetricsModel model = new MetricsModel(rows);
+        tblData1.setModel(model);
+        currentDisplay = "metrics";
+    }
+
+    /**
+     *
+     */
+    private void GetMetrics() {
+        String url = txCfgActuatorUri.getText() + "/actuator/metrics";
+        Map<String, String> props = new HashMap<>();
+        props.put("Accept", "*/*");
+        log.info("GET actuator metrics:");
+        log.info(url);
+        RestCallOutput ro = restService.SendRestApiRequest("GET", props, null, url);
+        log.info("Result code: " + ro.getResultCode());
+        Loguj("Result: " + ro.getResultCode());
+        if (ro.getResultCode() < 300) {
+            CommonOutput co = jsonProcessing.GetMetricsList(ro.getDataMsg());
+            globalData.setActuatorMetrics((ArrayList<String>) co.getResult());
+        } else {
+            Loguj(ro.getErrorMsg());
         }
     }
 
@@ -306,15 +372,15 @@ public class frmMain implements ActionListener {
         tabbedPane1 = new JTabbedPane();
         mainPanel.add(tabbedPane1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, new Dimension(200, 200), null, 0, false));
         final JPanel panel1 = new JPanel();
-        panel1.setLayout(new GridLayoutManager(3, 3, new Insets(0, 0, 0, 0), -1, -1));
+        panel1.setLayout(new GridLayoutManager(3, 4, new Insets(0, 0, 0, 0), -1, -1));
         tabbedPane1.addTab("Main", panel1);
         btnMainGetOverview = new JButton();
         btnMainGetOverview.setText("Get All Links");
         panel1.add(btnMainGetOverview, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer1 = new Spacer();
-        panel1.add(spacer1, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        panel1.add(spacer1, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         final JScrollPane scrollPane1 = new JScrollPane();
-        panel1.add(scrollPane1, new GridConstraints(2, 0, 1, 3, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        panel1.add(scrollPane1, new GridConstraints(2, 0, 1, 4, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         lbPrivateLog = new JList();
         Font lbPrivateLogFont = this.$$$getFont$$$("Courier New", -1, -1, lbPrivateLog.getFont());
         if (lbPrivateLogFont != null) lbPrivateLog.setFont(lbPrivateLogFont);
@@ -325,21 +391,27 @@ public class frmMain implements ActionListener {
         btnGetLoggers = new JButton();
         btnGetLoggers.setText("Get Loggers");
         panel1.add(btnGetLoggers, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        btnGetMetrics = new JButton();
+        btnGetMetrics.setText("Get Metrics");
+        panel1.add(btnGetMetrics, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel2 = new JPanel();
-        panel2.setLayout(new GridLayoutManager(2, 3, new Insets(0, 0, 0, 0), -1, -1));
+        panel2.setLayout(new GridLayoutManager(2, 4, new Insets(0, 0, 0, 0), -1, -1));
         tabbedPane1.addTab("Data", panel2);
         btnDisplayMainLinks = new JButton();
         btnDisplayMainLinks.setText("Main Links");
         panel2.add(btnDisplayMainLinks, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer2 = new Spacer();
-        panel2.add(spacer2, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        panel2.add(spacer2, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         final JScrollPane scrollPane2 = new JScrollPane();
-        panel2.add(scrollPane2, new GridConstraints(1, 0, 1, 3, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        panel2.add(scrollPane2, new GridConstraints(1, 0, 1, 4, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         tblData1 = new JTable();
         scrollPane2.setViewportView(tblData1);
         btnDisplayLoggers = new JButton();
         btnDisplayLoggers.setText("Loggers");
         panel2.add(btnDisplayLoggers, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        btnDisplayMetrics = new JButton();
+        btnDisplayMetrics.setText("Metrics");
+        panel2.add(btnDisplayMetrics, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel3 = new JPanel();
         panel3.setLayout(new GridLayoutManager(4, 3, new Insets(0, 0, 0, 0), -1, -1));
         tabbedPane1.addTab("Config", panel3);

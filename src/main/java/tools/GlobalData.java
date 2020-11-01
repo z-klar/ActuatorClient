@@ -11,6 +11,7 @@ public class GlobalData {
 
     private ArrayList<ActuatorLink> actuatorLinks = new ArrayList<>();
     private ArrayList<LoggerRecord> loggerRecords = new ArrayList<>();
+    private ArrayList<String> actuatorMetrics = new ArrayList<>();
 
 
 }
