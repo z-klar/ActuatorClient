@@ -22,7 +22,7 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 
     compile 'org.modelmapper:modelmapper:2.3.7'
-    compileOnly 'org.projectlombok:lombok:1.18.16'
+    compile 'org.projectlombok:lombok:1.18.16'
     annotationProcessor 'org.projectlombok:lombok:1.18.16'
 
     // Jackson xml mapper

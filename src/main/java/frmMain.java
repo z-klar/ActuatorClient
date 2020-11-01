@@ -82,7 +82,8 @@ public class frmMain implements ActionListener {
             }
         });
 
-        lbBuildInfo.setText("Build Date: " + getBuildDate().toString());
+        //lbBuildInfo.setText("Build Date: " + getBuildDate().toString());
+        lbBuildInfo.setText("Build Date: ");
         btnGetMetrics.addActionListener(e -> GetMetrics());
         btnDisplayMetrics.addActionListener(e -> DisplayMetrics());
     }
