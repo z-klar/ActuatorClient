@@ -12,6 +12,7 @@ import service.JsonProcessing;
 import service.RestCallService;
 import table.*;
 import tools.GlobalData;
+import tools.Tools;
 
 import javax.swing.*;
 import java.awt.*;
@@ -83,7 +84,8 @@ public class frmMain implements ActionListener {
         });
 
         //lbBuildInfo.setText("Build Date: " + getBuildDate().toString());
-        lbBuildInfo.setText("Build Date: ");
+        lbBuildInfo.setText("Build Date: " + Tools.getClassBuildTime().toString());
+        //lbBuildInfo.setText("Build Date: ");
         btnGetMetrics.addActionListener(e -> GetMetrics());
         btnDisplayMetrics.addActionListener(e -> DisplayMetrics());
     }
