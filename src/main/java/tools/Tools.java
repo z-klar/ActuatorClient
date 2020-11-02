@@ -1,5 +1,7 @@
 package tools;
 
+import javax.swing.*;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -18,6 +20,11 @@ public class Tools {
         for(int i=0; i<level; i++) s += "    ";
         return s;
     }
+
+    /**
+     *
+     * @return
+     */
     public  static Date getClassBuildTime() {
         Date d = null;
         Class<?> currentClass = new Object() {}.getClass().getEnclosingClass();
@@ -33,8 +40,6 @@ public class Tools {
             } else if (resource.getProtocol().equals("zip")) {
                 String path = resource.getPath();
                 File jarFileOnDisk = new File(path.substring(0, path.indexOf("!")));
-                //long jfodLastModifiedLong = jarFileOnDisk.lastModified ();
-                //Date jfodLasModifiedDate = new Date(jfodLastModifiedLong);
                 try(JarFile jf = new JarFile (jarFileOnDisk)) {
                     ZipEntry ze = jf.getEntry (path.substring(path.indexOf("!") + 2));//Skip the ! and the /
                     long zeTimeLong = ze.getTime ();
@@ -45,4 +50,16 @@ public class Tools {
         }
         return d;
     }
+
+    // region POPUP handlers
+    public static void PrepareLoggersPopups(JPopupMenu menu, String[] labels, Object form ) {
+        // popup for LOGGER table
+        for(String s : labels) {
+            JMenuItem mnuPpLogOFF = new JMenuItem(s);
+            mnuPpLogOFF.addActionListener((ActionListener) form);
+            menu.add(mnuPpLogOFF);
+        }
+    }
+
+
 }

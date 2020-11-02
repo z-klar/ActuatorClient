@@ -2,7 +2,6 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
 import dto.RestCallOutput;
-import jdk.nashorn.internal.scripts.JO;
 import model.ActuatorLink;
 import model.CommonOutput;
 import model.LoggerRecord;
@@ -54,8 +53,13 @@ public class frmMain implements ActionListener {
     private int TableMouseClickRow;
 
     JPopupMenu popLoggers = new JPopupMenu("pop_loggers");
+    private String [] popLoggersLabels = {"Set to OFF", "Set to ERROR", "Set to WARN",
+                                          "Set to INFO", "Set to DEBUG", "Set to TRACE"};
+    private String [] popLoggersCommands = {"OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"};
     JPopupMenu popMain = new JPopupMenu("pop_main");
+    private String [] popMainLabels = {"Send GET Request"};
     JPopupMenu popMetrics = new JPopupMenu("pop_metrics");
+    private String [] popMetricsLabels = {"GET This Metrics"};
 
     /**
      *
@@ -63,7 +67,9 @@ public class frmMain implements ActionListener {
     public frmMain() {
         lbLog.setModel(dlmLog);
         lbPrivateLog.setModel(dlmPrivateLog);
-        PreparePopups();
+        Tools.PrepareLoggersPopups(popLoggers, popLoggersLabels, this);
+        Tools.PrepareLoggersPopups(popMain, popMainLabels, this);
+        Tools.PrepareLoggersPopups(popMetrics, popMetricsLabels, this);
 
         btnClearLog.addActionListener(e -> dlmLog.clear());
         btnMainGetOverview.addActionListener(e -> getAllLinks());
@@ -82,79 +88,44 @@ public class frmMain implements ActionListener {
                 }
             }
         });
-
-        //lbBuildInfo.setText("Build Date: " + getBuildDate().toString());
         lbBuildInfo.setText("Build Date: " + Tools.getClassBuildTime().toString());
-        //lbBuildInfo.setText("Build Date: ");
         btnGetMetrics.addActionListener(e -> GetMetrics());
         btnDisplayMetrics.addActionListener(e -> DisplayMetrics());
     }
 
     // region POPUP handlers
-    private void PreparePopups() {
-        // popup for LOGGER table
-        JMenuItem mnuPpLogOFF = new JMenuItem("Set to OFF");
-        mnuPpLogOFF.addActionListener(this);
-        popLoggers.add(mnuPpLogOFF);
-        JMenuItem mnuPpLogERROR = new JMenuItem("Set to ERROR");
-        mnuPpLogERROR.addActionListener(this);
-        popLoggers.add(mnuPpLogERROR);
-        JMenuItem mnuPpLogWARN = new JMenuItem("Set to WARN");
-        mnuPpLogWARN.addActionListener(this);
-        popLoggers.add(mnuPpLogWARN);
-        JMenuItem mnuPpLogINFO = new JMenuItem("Set to INFO");
-        mnuPpLogINFO.addActionListener(this);
-        popLoggers.add(mnuPpLogINFO);
-        JMenuItem mnuPpLogDEBUG = new JMenuItem("Set to DEBUG");
-        mnuPpLogDEBUG.addActionListener(this);
-        popLoggers.add(mnuPpLogDEBUG);
-        JMenuItem mnuPpLogTRACE = new JMenuItem("Set to TRACE");
-        mnuPpLogTRACE.addActionListener(this);
-        popLoggers.add(mnuPpLogTRACE);
 
-        // popup for MAIN table
-        JMenuItem mnuPpMainGet = new JMenuItem("Send GET Request");
-        mnuPpMainGet.addActionListener(this);
-        popMain.add(mnuPpMainGet);
-
-        // popup for METRICS table
-        JMenuItem mnuPpMEtricsGet = new JMenuItem("GET This Metrics");
-        mnuPpMEtricsGet.addActionListener(this);
-        popMetrics.add(mnuPpMEtricsGet);
-    }
-
+    /**
+     *
+     * @param e
+     */
     public void actionPerformed(ActionEvent e) {
         JMenuItem source = (JMenuItem) (e.getSource());
         JPopupMenu comp = (JPopupMenu) source.getComponent().getParent();
         String mnuLabel = ((JPopupMenu) source.getComponent().getParent()).getLabel();
         log.info("Menu label: " + mnuLabel);
+        String label = source.getText();
         switch (mnuLabel) {
             case "pop_loggers":
-                if (source.getText().contains("OFF")) {
-                    UpdateLogLevel("OFF");
-                } else if (source.getText().contains("ERR")) {
-                    UpdateLogLevel("ERROR");
-                } else if (source.getText().contains("WARN")) {
-                    UpdateLogLevel("WARN");
-                } else if (source.getText().contains("INFO")) {
-                    UpdateLogLevel("INFO");
-                } else if (source.getText().contains("DEBUG")) {
-                    UpdateLogLevel("DEBUG");
-                } else if (source.getText().contains("TRACE")) {
-                    UpdateLogLevel("TRACE");
-                }
+                UpdateLogLevel(popLoggersCommands[FindLabel(label, popLoggersLabels)]);
                 break;
             case "pop_main":
-                if (source.getText().contains("GET")) {
+                if (label.contains(popMainLabels[0])) {
                     SendLinkGet();
                 }
                 break;
             case "pop_metrics":
-                if (source.getText().contains("GET")) {
+                if (label.contains(popMetricsLabels[0])) {
                     SendGetMetric();
                 }
                 break;
         }
+    }
+    private int FindLabel(String label, String [] labels) {
+        for(int i=0; i<labels.length; i++) {
+            if(labels[i].equals(label)) return(i);
+        }
+        return(1000);
     }
 
     /**
