@@ -188,7 +188,9 @@ public class frmMain implements ActionListener {
         Loguj("Result: " + ro.getResultCode());
         if (ro.getResultCode() < 300) {
             CommonOutput co = jsonProcessing.GetMetricsList(ro.getDataMsg());
-            globalData.setActuatorMetrics((ArrayList<String>) co.getResult());
+            ArrayList<String> al = (ArrayList<String>) co.getResult();
+            Collections.sort(al);
+            globalData.setActuatorMetrics(al);
         } else {
             Loguj(ro.getErrorMsg());
         }
@@ -282,7 +284,16 @@ public class frmMain implements ActionListener {
         dlmPrivateLog.addElement("ResultCode=" + ro.getResultCode());
         if (chkLogujVerbose.isSelected()) Loguj(ro.getDataMsg());
         CommonOutput co = jsonProcessing.GetAllActuatorLinks(ro.getDataMsg());
-        globalData.setActuatorLinks((ArrayList<ActuatorLink>) co.getResult());
+        ArrayList<ActuatorLink> al = (ArrayList<ActuatorLink>) co.getResult();
+        Collections.sort(al, new SortLink());
+        globalData.setActuatorLinks(al);
+    }
+    class SortLink implements  Comparator<ActuatorLink> {
+        public int compare(ActuatorLink a1, ActuatorLink a2) {
+            String s1 = a1.getName();
+            String s2 = a2.getName();
+            return(s1.compareTo(s2));
+        }
     }
 
     /**
